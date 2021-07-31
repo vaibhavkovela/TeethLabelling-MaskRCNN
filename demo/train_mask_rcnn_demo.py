@@ -57,8 +57,8 @@ class CustomConfig(Config):
 
     # Use small images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
-    IMAGE_MIN_DIM = 320
-    IMAGE_MAX_DIM = 320
+    IMAGE_MIN_DIM = 512
+    IMAGE_MAX_DIM = 512
 
     # Use smaller anchors because our image and objects are small
     # RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
@@ -68,7 +68,7 @@ class CustomConfig(Config):
     # TRAIN_ROIS_PER_IMAGE = 32
 
     # Use a small epoch since the data is simple
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 500
 
     # use small validation steps since the epoch is small
     VALIDATION_STEPS = 5
@@ -292,4 +292,27 @@ def load_test_model(num_classes):
     # Load trained weights
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
-    return model
+    return model, inference_config
+
+def test_random_image(test_model, dataset_val, inference_config):
+    image_id = random.choice(dataset_val.image_ids)
+    original_image, image_meta, gt_class_id, gt_bbox, gt_mask = \
+        modellib.load_image_gt(dataset_val, inference_config,
+                               image_id, use_mini_mask=False)
+
+    log("original_image", original_image)
+    # log("image_meta", image_meta)
+    # log("gt_class_id", gt_class_id)
+    # log("gt_bbox", gt_bbox)
+    # log("gt_mask", gt_mask)
+
+    # Model result
+    print("Trained model result")
+    results = test_model.detect([original_image], verbose=1)
+    r = results[0]
+    visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
+                                dataset_val.class_names, r['scores'], ax=get_ax(), show_bbox=False)
+
+    print("Annotation")
+    visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
+                                dataset_val.class_names, figsize=(8, 8))
