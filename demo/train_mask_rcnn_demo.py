@@ -12,7 +12,7 @@ import json
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("/content/Mask_RCNN")
-print(ROOT_DIR)
+print("VERS 0.1")
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
@@ -245,9 +245,9 @@ def display_image_samples(dataset_train):
         mask, class_ids = dataset_train.load_mask(image_id)
         visualize.display_top_masks(image, mask, class_ids, dataset_train.class_names)
 
-def load_image_dataset(annotation_path, dataset_path):
+def load_image_dataset(annotation_path, dataset_path, dataset_type):
     dataset_train = CustomDataset()
-    dataset_train.load_custom(annotation_path, dataset_path)
+    dataset_train.load_custom(annotation_path, dataset_path, dataset_type)
     dataset_train.prepare()
     return dataset_train
 
