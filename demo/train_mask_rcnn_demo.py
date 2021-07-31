@@ -23,7 +23,7 @@ from mrcnn.model import log
 from PIL import Image, ImageDraw
 
 import warnings
-#warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore')
 
 
 # Directory to save logs and trained model
@@ -97,7 +97,7 @@ class CustomDataset(utils.Dataset):
         See http://cocodataset.org/#home for more information.
     """
 
-    def load_custom(self, annotation_json, images_dir):
+    def load_custom(self, annotation_json, images_dir, dataset_type="train"):
         """ Load the coco-like dataset from json
         Args:
             annotation_json: The path to the coco annotations json file
@@ -109,6 +109,7 @@ class CustomDataset(utils.Dataset):
         json_file = open(annotation_json)
         coco_json = json.load(json_file)
         json_file.close()
+
 
         # Add the class names using the base method from utils.Dataset
         source_name = "coco_like"
@@ -133,7 +134,16 @@ class CustomDataset(utils.Dataset):
 
         # Get all images and add them to the dataset
         seen_images = {}
-        for image in coco_json['images']:
+
+        # Split the dataset, if train, get 90%, else 10%
+        len_images = len(coco_json['images'])
+        if dataset_type == "train":
+            img_range = [0, int(len_images / 9)]
+        else:
+            img_range = [int(len_images / 9), len_images - int(len_images / 9)]
+
+        for i in range(img_range[0], img_range[1]):
+            image = coco_json['images'][i]
             image_id = image['id']
             if image_id in seen_images:
                 print("Warning: Skipping duplicate image id: {}".format(image))
