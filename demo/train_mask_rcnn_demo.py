@@ -12,7 +12,7 @@ import json
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("/content/Mask_RCNN")
-print("VERS 0.1")
+print("VERS 0.2")
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn.config import Config
@@ -38,7 +38,7 @@ if not os.path.exists(COCO_MODEL_PATH):
 
 class CustomConfig(Config):
     def __init__(self, num_classes):
-        self.NUM_CLASSES = num_classes
+        self.NUM_CLASSES = num_classes + 1
         super().__init__()
     """Configuration for training on the toy shapes dataset.
     Derives from the base Config class and overrides values specific
@@ -276,8 +276,8 @@ class InferenceConfig(CustomConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
-def load_test_model():
-    inference_config = InferenceConfig()
+def load_test_model(num_classes):
+    inference_config = InferenceConfig(num_classes)
 
     # Recreate the model in inference mode
     model = modellib.MaskRCNN(mode="inference",
