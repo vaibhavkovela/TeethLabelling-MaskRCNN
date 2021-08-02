@@ -9,6 +9,9 @@ import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import json
+import os
+import shutil
+import zipfile
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("/content/Mask_RCNN")
@@ -38,6 +41,11 @@ if not os.path.exists(COCO_MODEL_PATH):
 
 class CustomConfig(Config):
     def __init__(self, num_classes):
+
+        if num_classes > 1:
+            raise ValueError("{} classes were found. This is a DEMO version, and it only supports 1 class. Get the PRO version to"
+                  " continue the training.")
+
         self.NUM_CLASSES = num_classes + 1
         super().__init__()
     """Configuration for training on the toy shapes dataset.
@@ -276,6 +284,23 @@ class InferenceConfig(CustomConfig):
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
+def extract_images(my_zip, output_dir):
+    with zipfile.ZipFile(my_zip) as zip_file:
+        count = 0
+        for member in zip_file.namelist():
+            filename = os.path.basename(member)
+            # skip directories
+            if not filename:
+                continue
+            count += 1
+            # copy file (taken from zipfile's extract)
+            source = zip_file.open(member)
+            target = open(os.path.join(output_dir, filename), "wb")
+            with source, target:
+                shutil.copyfileobj(source, target)
+        print("Extracted: {} images".format(count))
+
+
 def load_test_model(num_classes):
     inference_config = InferenceConfig(num_classes)
 
@@ -316,3 +341,6 @@ def test_random_image(test_model, dataset_val, inference_config):
     print("Annotation")
     visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
                                 dataset_val.class_names, figsize=(8, 8))
+
+
+
