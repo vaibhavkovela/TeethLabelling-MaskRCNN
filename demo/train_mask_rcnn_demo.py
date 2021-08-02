@@ -285,6 +285,9 @@ class InferenceConfig(CustomConfig):
     IMAGES_PER_GPU = 1
 
 def extract_images(my_zip, output_dir):
+    # Make directory if it doesn't exist
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     with zipfile.ZipFile(my_zip) as zip_file:
         count = 0
         for member in zip_file.namelist():
