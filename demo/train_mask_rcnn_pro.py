@@ -350,6 +350,6 @@ def connect_google_drive():
     drive.mount('/content/gdrive')
 
 def create_mrcnn_output_directory(project_name):
-    path = os.path.join('/content/gdrive/', project_name)
+    path = os.path.join('/content/gdrive/MyDrive/pysource_mrcnn_pro/',  project_name)
     if not os.path.exists(path):
         os.makedirs(path)
