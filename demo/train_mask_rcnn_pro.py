@@ -29,8 +29,10 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-# Directory to save logs and trained model
-MODEL_DIR = os.path.join(ROOT_DIR, "logs")
+DRIVE_ROOT_DIR = "/content/gdrive/MyDrive/pysource_mrcnn_pro/"
+
+
+
 
 # Local path to trained weights file
 COCO_MODEL_PATH = os.path.join(ROOT_DIR, "mask_rcnn_coco.h5")
@@ -40,7 +42,7 @@ if not os.path.exists(COCO_MODEL_PATH):
 
 
 class CustomConfig(Config):
-    def __init__(self, num_classes, steps_epoch, image_size=832):
+    def __init__(self, num_classes, steps_epoch=500, image_size=832):
         self.NUM_CLASSES = num_classes + 1
         self.STEPS_PER_EPOCH = steps_epoch
         self.IMAGE_MAX_DIM = image_size
@@ -218,9 +220,13 @@ class CustomDataset(utils.Dataset):
         class_number = len(class_ids)
         return class_number
 
-def load_training_model(config, init_with="coco"):
+# Directory to save logs and trained model
+MODEL_DIR = os.path.join(ROOT_DIR, "logs")
+
+def load_training_model(config, project_name, init_with="coco"):
+    model_dir = os.path.join(DRIVE_ROOT_DIR, project_name)
     model = modellib.MaskRCNN(mode="training", config=config,
-                              model_dir=MODEL_DIR)
+                              model_dir=model_dir)
 
     # Which weights to start with?
     # = "coco"  # imagenet, coco, or last
@@ -301,13 +307,13 @@ def extract_images(my_zip, output_dir):
         print("Extracted: {} images".format(count))
 
 
-def load_test_model(num_classes):
+def load_test_model(num_classes, project_name):
     inference_config = InferenceConfig(num_classes)
-
+    model_dir = os.path.join(DRIVE_ROOT_DIR,  project_name)
     # Recreate the model in inference mode
     model = modellib.MaskRCNN(mode="inference",
                               config=inference_config,
-                              model_dir=MODEL_DIR)
+                              model_dir=model_dir)
 
     # Get path to saved weights
     # Either set a specific path or find last trained weights
@@ -345,11 +351,25 @@ def test_random_image(test_model, dataset_val, inference_config):
 
 
 # Connect google drive
-def connect_google_drive():
+def connect_google_drive(project_name):
     from google.colab import drive
     drive.mount('/content/gdrive')
 
+    model_dir = os.path.join(DRIVE_ROOT_DIR, project_name)
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+        print("New project created {}".format(project_name))
+        print("You'll find the project on Google Drive, on the folder pysource_mrcnn_pro/{} .".format(project_name))
+    else:
+        print("Project {} already exists. Editing existing project.".format(project_name))
+    return model_dir
+
 def create_mrcnn_output_directory(project_name):
-    path = os.path.join('/content/gdrive/MyDrive/pysource_mrcnn_pro/',  project_name)
-    if not os.path.exists(path):
-        os.makedirs(path)
+    model_dir = os.path.join(DRIVE_ROOT_DIR,  project_name)
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+        print("New project created {}".format(project_name))
+        print("You'll find the project on Google Drive, pysource_mrcnn_pro/{} .".format(project_name))
+    else:
+        print("Project {} already exists. Editing existing project.".format(project_name))
+    return model_dir
