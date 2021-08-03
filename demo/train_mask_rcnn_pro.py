@@ -342,11 +342,11 @@ def test_random_image(test_model, dataset_val, inference_config):
     results = test_model.detect([original_image], verbose=1)
     r = results[0]
     visualize.display_instances(original_image, r['rois'], r['masks'], r['class_ids'],
-                                dataset_val.class_names, r['scores'], ax=get_ax(), show_bbox=False)
+                                dataset_val.class_names, r['scores'], ax=get_ax(), show_bbox=False, figsize=(12, 12))
 
     print("Annotation")
     visualize.display_instances(original_image, gt_bbox, gt_mask, gt_class_id,
-                                dataset_val.class_names, figsize=(8, 8))
+                                dataset_val.class_names, figsize=(12, 12))
 
 
 
@@ -373,3 +373,23 @@ def create_mrcnn_output_directory(project_name):
     else:
         print("Project {} already exists. Editing existing project.".format(project_name))
     return model_dir
+
+
+def model_evaluation(dataset_val, test_model, inference_config):
+    APs = []
+    print("Testing the model on {} validation images.".format(len(dataset_val.image_ids)))
+    for image_id in dataset_val.image_ids:
+        # Load image and ground truth data
+        image, image_meta, gt_class_id, gt_bbox, gt_mask = \
+            modellib.load_image_gt(dataset_val, inference_config,
+                                   image_id, use_mini_mask=False)
+        molded_images = np.expand_dims(modellib.mold_image(image, inference_config), 0)
+        # Run object detection
+        results = test_model.detect([image], verbose=0)
+        r = results[0]
+        # Compute AP
+        AP, precisions, recalls, overlaps = \
+            utils.compute_ap(gt_bbox, gt_class_id, gt_mask,
+                             r["rois"], r["class_ids"], r["scores"], r['masks'])
+        APs.append(AP)
+    return APs
