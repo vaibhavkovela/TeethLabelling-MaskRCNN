@@ -40,9 +40,11 @@ if not os.path.exists(COCO_MODEL_PATH):
 
 
 class CustomConfig(Config):
-    def __init__(self, num_classes, steps_epoch):
+    def __init__(self, num_classes, steps_epoch, image_size=832):
         self.NUM_CLASSES = num_classes + 1
         self.STEPS_PER_EPOCH = steps_epoch
+        self.IMAGE_MAX_DIM = image_size
+        self.IMAGE_MIN_DIM = image_size
         super().__init__()
     """Configuration for training on the toy shapes dataset.
     Derives from the base Config class and overrides values specific
@@ -61,8 +63,8 @@ class CustomConfig(Config):
 
     # Use small images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
-    IMAGE_MIN_DIM = 832
-    IMAGE_MAX_DIM = 832
+    #IMAGE_MIN_DIM = 832
+    #IMAGE_MAX_DIM = 832
 
     # Use smaller anchors because our image and objects are small
     # RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
@@ -342,3 +344,12 @@ def test_random_image(test_model, dataset_val, inference_config):
 
 
 
+# Connect google drive
+def connect_google_drive():
+    from google.colab import drive
+    drive.mount('/content/gdrive')
+
+def create_mrcnn_output_directory(project_name):
+    path = os.path.join('/content/gdrive/', project_name)
+    if not os.path.exists(path):
+        os.makedirs(path)
