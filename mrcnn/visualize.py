@@ -60,13 +60,15 @@ def display_images(images, titles=None, cols=4, cmap=None, norm=None,
 
 
 
-def random_colors(N, bright=True):
+def random_colors(N, bright=True, opencv=True):
     """
     Generate random colors.
     To get visually distinct colors, generate them in HSV space then
     convert to RGB.
     """
     brightness = 255 if bright else 180
+    if opencv is True:
+        brightness = 1 if bright else 0.7
     hsv = [(i / N + 1, 1, brightness) for i in range(N + 1)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     random.shuffle(colors)
@@ -131,7 +133,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         auto_show = True
 
     # Generate random colors
-    colors = colors or random_colors(N)
+    colors = colors or random_colors(N, opencv=False)
 
     # Show area outside image boundaries.
     height, width = image.shape[:2]
@@ -401,7 +403,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
         _, ax = plt.subplots(1, figsize=(12, 12))
 
     # Generate random colors
-    colors = random_colors(N)
+    colors = random_colors(N, opencv=False)
 
     # Show area outside image boundaries.
     margin = image.shape[0] // 10
