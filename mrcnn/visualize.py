@@ -67,7 +67,7 @@ def random_colors(N, bright=True, opencv=True):
     convert to RGB.
     """
     brightness = 255 if bright else 180
-    if opencv is True:
+    if opencv is False:
         brightness = 1 if bright else 0.7
     hsv = [(i / N + 1, 1, brightness) for i in range(N + 1)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
