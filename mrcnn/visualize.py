@@ -12,13 +12,14 @@ import sys
 import random
 import itertools
 import colorsys
+import cv2
 
 import numpy as np
 from skimage.measure import find_contours
 import matplotlib.pyplot as plt
 from matplotlib import patches,  lines
 from matplotlib.patches import Polygon
-import IPython.display
+# import IPython.display
 
 # Root directory of the project
 ROOT_DIR = os.path.abspath("../")
@@ -26,6 +27,7 @@ ROOT_DIR = os.path.abspath("../")
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
 from mrcnn import utils
+from mrcnn.config import Config
 
 
 ############################################################
@@ -56,17 +58,35 @@ def display_images(images, titles=None, cols=4, cmap=None, norm=None,
     plt.show()
 
 
+
+
 def random_colors(N, bright=True):
     """
     Generate random colors.
     To get visually distinct colors, generate them in HSV space then
     convert to RGB.
     """
-    brightness = 1.0 if bright else 0.7
-    hsv = [(i / N, 1, brightness) for i in range(N)]
+    brightness = 255 if bright else 180
+    hsv = [(i / N + 1, 1, brightness) for i in range(N + 1)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     random.shuffle(colors)
     return colors
+
+def get_mask_contours(mask):
+    #mask = masks[:, :, i]
+    # Mask Polygon
+    # Pad to ensure proper polygons for masks that touch image edges.
+    contours_mask = []
+    padded_mask = np.zeros(
+        (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
+    padded_mask[1:-1, 1:-1] = mask
+    contours = find_contours(padded_mask, 0.5)
+    for verts in contours:
+        # Subtract the padding and flip (y, x) to (x, y)
+        verts = np.fliplr(verts) - 1
+        contours_mask.append(np.array(verts, np.int32))
+    return contours_mask
+
 
 
 def apply_mask(image, mask, color, alpha=0.5):
@@ -458,43 +478,75 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
     ax.imshow(masked_image.astype(np.uint8))
 
 
-def display_table(table):
-    """Display values in a table format.
-    table: an iterable of rows, and each row is an iterable of values.
-    """
-    html = ""
-    for row in table:
-        row_html = ""
-        for col in row:
-            row_html += "<td>{:40}</td>".format(str(col))
-        html += "<tr>" + row_html + "</tr>"
-    html = "<table>" + html + "</table>"
-    IPython.display.display(IPython.display.HTML(html))
+def draw_mask(img, pts, color, alpha=0.5):
+    h, w, _ = img.shape
+
+    overlay = img.copy()
+    output = img.copy()
+
+    cv2.fillPoly(overlay, pts, color)
+    output = cv2.addWeighted(overlay, alpha, output, 1 - alpha,
+                    0, output)
+    return output
 
 
-def display_weight_stats(model):
-    """Scans all the weights in the model and returns a list of tuples
-    that contain stats about each weight.
-    """
-    layers = model.get_trainable_layers()
-    table = [["WEIGHT NAME", "SHAPE", "MIN", "MAX", "STD"]]
-    for l in layers:
-        weight_values = l.get_weights()  # list of Numpy arrays
-        weight_tensors = l.weights  # list of TF tensors
-        for i, w in enumerate(weight_values):
-            weight_name = weight_tensors[i].name
-            # Detect problematic layers. Exclude biases of conv layers.
-            alert = ""
-            if w.min() == w.max() and not (l.__class__.__name__ == "Conv2D" and i == 1):
-                alert += "<span style='color:red'>*** dead?</span>"
-            if np.abs(w.min()) > 1000 or np.abs(w.max()) > 1000:
-                alert += "<span style='color:red'>*** Overflow?</span>"
-            # Add row
-            table.append([
-                weight_name + alert,
-                str(w.shape),
-                "{:+9.4f}".format(w.min()),
-                "{:+10.4f}".format(w.max()),
-                "{:+9.4f}".format(w.std()),
-            ])
-    display_table(table)
+
+# def display_table(table):
+#     """Display values in a table format.
+#     table: an iterable of rows, and each row is an iterable of values.
+#     """
+#     html = ""
+#     for row in table:
+#         row_html = ""
+#         for col in row:
+#             row_html += "<td>{:40}</td>".format(str(col))
+#         html += "<tr>" + row_html + "</tr>"
+#     html = "<table>" + html + "</table>"
+#     IPython.display.display(IPython.display.HTML(html))
+
+#
+# def display_weight_stats(model):
+#     """Scans all the weights in the model and returns a list of tuples
+#     that contain stats about each weight.
+#     """
+#     layers = model.get_trainable_layers()
+#     table = [["WEIGHT NAME", "SHAPE", "MIN", "MAX", "STD"]]
+#     for l in layers:
+#         weight_values = l.get_weights()  # list of Numpy arrays
+#         weight_tensors = l.weights  # list of TF tensors
+#         for i, w in enumerate(weight_values):
+#             weight_name = weight_tensors[i].name
+#             # Detect problematic layers. Exclude biases of conv layers.
+#             alert = ""
+#             if w.min() == w.max() and not (l.__class__.__name__ == "Conv2D" and i == 1):
+#                 alert += "<span style='color:red'>*** dead?</span>"
+#             if np.abs(w.min()) > 1000 or np.abs(w.max()) > 1000:
+#                 alert += "<span style='color:red'>*** Overflow?</span>"
+#             # Add row
+#             table.append([
+#                 weight_name + alert,
+#                 str(w.shape),
+#                 "{:+9.4f}".format(w.min()),
+#                 "{:+10.4f}".format(w.max()),
+#                 "{:+9.4f}".format(w.std()),
+#             ])
+#     display_table(table)
+
+
+class InferenceConfig(Config):
+    def __init__(self, num_classes, image_size):
+
+        self.NUM_CLASSES = num_classes + 1
+        self.IMAGE_MAX_DIM = image_size
+        self.IMAGE_MIN_DIM = image_size
+        super().__init__()
+    # Set batch size to 1 since we'll be running inference on
+    # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 1
+    NAME = 'coco'
+    # NUM_CLASSES = 1 + 1  # background + 3 shapes
+    # IMAGE_MIN_DIM = 832
+    # IMAGE_MAX_DIM = 832
+
+
